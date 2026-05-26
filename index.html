@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPS Shadow Gambit | Tactical Local & Online Multiplayer</title>
+    <meta name="description" content="A premium tactical two-player Rock Paper Scissors game featuring Gambit and Shadow list mechanics. Play locally or online.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- PeerJS CDN -->
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Custom SVG Definitions for icons -->
+    <svg style="display: none;">
+        <defs>
+            <!-- Rock Icon (Glowing stylized fist/stone) -->
+            <g id="icon-rock">
+                <path d="M6 14v-2.5a2.5 2.5 0 0 1 2.5-2.5h1.75V8.5A1.5 1.5 0 0 1 11.75 7h1.5A1.5 1.5 0 0 1 14.75 8.5v.5h.75A1.5 1.5 0 0 1 17 10.5v3.5a3 3 0 0 1-3 3h-5A3 3 0 0 1 6 14z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8.5 9h5M11.75 7v2M14.75 9v1.5M10.25 9v1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </g>
+            
+            <!-- Paper Icon (Glowing stylized sheet/shield) -->
+            <g id="icon-paper">
+                <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>
+
+            <!-- Scissors Icon (Glowing modern shears) -->
+            <g id="icon-scissors">
+                <circle cx="6" cy="6" r="3" fill="none" stroke="currentColor" stroke-width="2"/>
+                <circle cx="6" cy="18" r="3" fill="none" stroke="currentColor" stroke-width="2"/>
+                <path d="M9.8 8.2L20 17M9.8 15.8L20 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </g>
+
+            <!-- Locked/Shadow Icon -->
+            <g id="icon-lock">
+                <rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                <path d="M12 15v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M8 11V7a4 4 0 0 1 8 0v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </g>
+        </defs>
+    </svg>
+
+    <div class="stars"></div>
+    <div class="glow-overlay"></div>
+
+    <!-- Active Waiting Overlay for online synchronization -->
+    <div id="screen-lock-overlay" class="overlay-lock">
+        <div class="overlay-content">
+            <div class="spinner"></div>
+            <h3 id="lock-overlay-title">TRANSMITTING DATA</h3>
+            <p id="lock-overlay-msg">Waiting for opponent to complete their action...</p>
+        </div>
+    </div>
+
+    <main class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <h1 class="logo-text">RPS <span class="accent-text">SHADOW GAMBIT</span></h1>
+            <div class="game-subtitle">A Two-Player Mind Game</div>
+        </header>
+
+        <!-- WELCOME SCREEN -->
+        <section id="screen-welcome" class="game-screen active">
+            <div class="card glassmorphic welcome-card">
+                <h2 class="title-main">INFILTRATE & COUNTER</h2>
+                <p class="tagline">An asymmetric rock-paper-scissors duel where hidden intentions decide the victor.</p>
+                
+                <div class="rules-container">
+                    <h3>Rules of Engagement</h3>
+                    <div class="rule-steps">
+                        <div class="rule-step">
+                            <span class="step-num">01</span>
+                            <div class="step-content">
+                                <strong>Player 1 Setup:</strong> Select 5 shapes for the public **Gambit** ($L1_A$) and 5 shapes for the secret **Shadow** ($L1_B$).
+                            </div>
+                        </div>
+                        <div class="rule-step">
+                            <span class="step-num">02</span>
+                            <div class="step-content">
+                                <strong>Player 2 Counter:</strong> Review Player 1's public **Gambit**, then select your 5-shape **Counter** ($L2$) to match the hidden **Shadow**.
+                            </div>
+                        </div>
+                        <div class="rule-step">
+                            <span class="step-num">03</span>
+                            <div class="step-content">
+                                <strong>The Showdown:</strong> The hidden **Shadow** ($L1_B$) is compared directly with the **Counter** ($L2$) round-by-round.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Game Mode Buttons Selection -->
+                <div id="mode-selector-panel" class="mode-grid">
+                    <button id="btn-mode-local" class="btn primary-btn glow-cyan">
+                        <span>LOCAL DUEL (SAME SCREEN)</span>
+                    </button>
+                    <button id="btn-mode-online" class="btn primary-btn glow-purple">
+                        <span>ONLINE GAMBIT (P2P WEBRTC)</span>
+                    </button>
+                </div>
+
+                <!-- Online connection panel (initially hidden) -->
+                <div id="online-connection-panel" class="connection-panel" style="display: none;">
+                    <div class="connection-methods">
+                        <!-- Host Card -->
+                        <div class="connection-card glassmorphic">
+                            <h3>HOST SESSION</h3>
+                            <p>Generate a Session ID for Player 2 to join.</p>
+                            <button id="btn-host-game" class="btn primary-btn glow-cyan">
+                                <span>CREATE SESSION</span>
+                            </button>
+                            <div id="host-id-display" class="session-id-box" style="display: none;">
+                                <div class="id-label">YOUR SESSION ID:</div>
+                                <div class="id-row">
+                                    <span id="lbl-my-id" class="id-text">------</span>
+                                    <button id="btn-copy-id" class="btn-copy" title="Copy ID">📋</button>
+                                </div>
+                                <div class="pulse-text">Waiting for Player 2 to connect...</div>
+                            </div>
+                        </div>
+
+                        <!-- Join Card -->
+                        <div class="connection-card glassmorphic">
+                            <h3>JOIN SESSION</h3>
+                            <p>Enter Player 1's Session ID to establish peer link.</p>
+                            <input type="text" id="input-session-id" class="session-input" placeholder="Enter Session ID..." autocomplete="off">
+                            <button id="btn-join-game" class="btn primary-btn glow-purple">
+                                <span>ESTABLISH LINK</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Connection Logs / Errors -->
+                    <div id="connection-status-log" class="connection-status-bar">
+                        <span class="status-dot"></span> <span id="connection-status-text">INITIALIZING TRANSCEIVER...</span>
+                    </div>
+
+                    <div class="action-bar">
+                        <button id="btn-back-welcome" class="btn-back">← Back to Modes</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PLAYER 1 SETUP SCREEN -->
+        <section id="screen-p1-setup" class="game-screen">
+            <div class="screen-title-area">
+                <span class="badge player1-badge" id="lbl-p1-badge">PLAYER 1 TURN</span>
+                <h2>Deploy Your Gambits</h2>
+                <p id="lbl-p1-setup-instructions">Construct your tactical public and hidden lists.</p>
+            </div>
+
+            <div class="setup-grid">
+                <!-- Public Gambit (L1-A) -->
+                <div class="card glassmorphic setup-panel cyan-panel">
+                    <h3 class="panel-header text-cyan">
+                        Public Gambit <span class="math-term">($L1_A$)</span>
+                        <span class="tooltip">Visible to Player 2</span>
+                    </h3>
+                    <div class="card-slots" id="p1-gambit-slots">
+                        <!-- 5 slots generated by JS -->
+                    </div>
+                </div>
+
+                <!-- Shadow Gambit (L1-B) -->
+                <div class="card glassmorphic setup-panel purple-panel">
+                    <h3 class="panel-header text-purple">
+                        Shadow Gambit <span class="math-term">($L1_B$)</span>
+                        <span class="tooltip">Hidden from Player 2</span>
+                    </h3>
+                    <div class="card-slots" id="p1-shadow-slots">
+                        <!-- 5 slots generated by JS -->
+                    </div>
+                    
+                    <div class="reveal-control-container">
+                        <button id="btn-reveal-shadow" class="btn reveal-btn">
+                            <span class="eye-icon">👁</span> HOLD TO REVEAL SHADOW
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Choice Selector Pad -->
+            <div class="selector-pad-container">
+                <div class="current-selection-info">
+                    Selecting <span id="current-slot-label" class="highlight-text text-cyan">Public Slot 1</span>
+                </div>
+                <div class="selector-pad">
+                    <button class="choice-btn" data-choice="rock" id="p1-choice-rock">
+                        <svg viewBox="0 0 24 24"><use href="#icon-rock"></use></svg>
+                        <span>ROCK</span>
+                    </button>
+                    <button class="choice-btn" data-choice="paper" id="p1-choice-paper">
+                        <svg viewBox="0 0 24 24"><use href="#icon-paper"></use></svg>
+                        <span>PAPER</span>
+                    </button>
+                    <button class="choice-btn" data-choice="scissors" id="p1-choice-scissors">
+                        <svg viewBox="0 0 24 24"><use href="#icon-scissors"></use></svg>
+                        <span>SCISSORS</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="action-bar central-actions">
+                <button id="btn-p1-confirm" class="btn primary-btn glow-cyan" disabled>
+                    <span>CONFIRM DEPLOYMENT</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- TRANSITION / PASS DEVICE SCREEN (Local Play Only) -->
+        <section id="screen-pass" class="game-screen">
+            <div class="card glassmorphic pass-card">
+                <div class="pass-warning-icon">🔏</div>
+                <h2 class="title-main">SECURE TRANSACTION</h2>
+                <p class="tagline">Player 1 deployment complete. To preserve secrecy, pass the device to Player 2.</p>
+                <div class="alert-box">
+                    <strong>Notice:</strong> Player 2 must not look at Player 1's secret Shadow list.
+                </div>
+                <div class="action-bar">
+                    <button id="btn-pass-ready" class="btn primary-btn glow-purple">
+                        <span>PLAYER 2 READY</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PLAYER 2 COUNTER SCREEN -->
+        <section id="screen-p2-setup" class="game-screen">
+            <div class="screen-title-area">
+                <span class="badge player2-badge" id="lbl-p2-badge">PLAYER 2 TURN</span>
+                <h2>Deploy Countermeasures</h2>
+                <p>Observe the Public Gambit. Anticipate the Shadow.</p>
+            </div>
+
+            <div class="p2-board">
+                <!-- Player 1 Intel Panels (Read Only) -->
+                <div class="intel-wrapper">
+                    <!-- L1-A Public Intel -->
+                    <div class="card glassmorphic intel-panel cyan-panel">
+                        <h3 class="panel-header text-cyan">P1 Public Gambit <span class="math-term">($L1_A$)</span></h3>
+                        <div class="card-slots read-only" id="p2-intel-public">
+                            <!-- 5 slots populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- L1-B Shadow (Hidden Intel) -->
+                    <div class="card glassmorphic intel-panel purple-panel shadow-intel">
+                        <h3 class="panel-header text-purple">P1 Shadow Gambit <span class="math-term">($L1_B$)</span></h3>
+                        <div class="card-slots read-only locked-slots" id="p2-intel-shadow">
+                            <!-- 5 locked slots -->
+                            <div class="card-slot locked"><svg viewBox="0 0 24 24"><use href="#icon-lock"></use></svg></div>
+                            <div class="card-slot locked"><svg viewBox="0 0 24 24"><use href="#icon-lock"></use></svg></div>
+                            <div class="card-slot locked"><svg viewBox="0 0 24 24"><use href="#icon-lock"></use></svg></div>
+                            <div class="card-slot locked"><svg viewBox="0 0 24 24"><use href="#icon-lock"></use></svg></div>
+                            <div class="card-slot locked"><svg viewBox="0 0 24 24"><use href="#icon-lock"></use></svg></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Player 2 Counter Slots (Input) -->
+                <div class="card glassmorphic setup-panel magenta-panel">
+                    <h3 class="panel-header text-magenta">Your Counter List <span class="math-term">($L2$)</span></h3>
+                    <div class="card-slots" id="p2-counter-slots">
+                        <!-- 5 slots generated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Choice Selector Pad (P2) -->
+            <div class="selector-pad-container">
+                <div class="current-selection-info">
+                    Selecting <span id="p2-slot-label" class="highlight-text text-magenta">Counter Slot 1</span>
+                </div>
+                <div class="selector-pad">
+                    <button class="choice-btn p2-choice" data-choice="rock" id="p2-choice-rock">
+                        <svg viewBox="0 0 24 24"><use href="#icon-rock"></use></svg>
+                        <span>ROCK</span>
+                    </button>
+                    <button class="choice-btn p2-choice" data-choice="paper" id="p2-choice-paper">
+                        <svg viewBox="0 0 24 24"><use href="#icon-paper"></use></svg>
+                        <span>PAPER</span>
+                    </button>
+                    <button class="choice-btn p2-choice" data-choice="scissors" id="p2-choice-scissors">
+                        <svg viewBox="0 0 24 24"><use href="#icon-scissors"></use></svg>
+                        <span>SCISSORS</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="action-bar central-actions">
+                <button id="btn-p2-confirm" class="btn primary-btn glow-purple" disabled>
+                    <span>ENGAGE SHOWDOWN</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- SHOWDOWN SCREEN -->
+        <section id="screen-showdown" class="game-screen">
+            <div class="screen-title-area">
+                <span class="badge showdown-badge">RESOLVING PROTOCOL</span>
+                <h2>The Shadow Reveal</h2>
+                <p>Comparing Player 1's Shadow list <span class="math-term">($L1_B$)</span> against Player 2's Counter list <span class="math-term">($L2$)</span>.</p>
+                
+                <!-- Cryptographic Security Status Badge -->
+                <div class="cryptography-badge-wrapper">
+                    <span id="showdown-security-badge" class="security-badge badge-neutral">🛡️ LOCAL SECURITY VALIDATED</span>
+                </div>
+            </div>
+
+            <!-- Showdown Arena -->
+            <div class="showdown-arena">
+                <!-- Scoreboard -->
+                <div class="scoreboard glassmorphic">
+                    <div class="score-team team-p1">
+                        <div class="team-label" id="lbl-p1-score-team">P1 SHADOW</div>
+                        <div class="score-number" id="score-p1">0</div>
+                    </div>
+                    <div class="score-divider">:</div>
+                    <div class="score-team team-p2">
+                        <div class="team-label" id="lbl-p2-score-team">P2 COUNTER</div>
+                        <div class="score-number" id="score-p2">0</div>
+                    </div>
+                </div>
+
+                <!-- 5 duel tracks -->
+                <div class="duel-tracks" id="showdown-tracks">
+                    <!-- Duel tracks generated by JS with cards that flip -->
+                </div>
+            </div>
+
+            <div class="action-bar central-actions">
+                <button id="btn-start-showdown" class="btn primary-btn glow-cyan">
+                    <span>EXECUTE PROTOCOL</span>
+                </button>
+                <button id="btn-showdown-results" class="btn primary-btn glow-purple" style="display: none;">
+                    <span>PROCEED TO RESULTS</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- GAME OVER SCREEN -->
+        <section id="screen-game-over" class="game-screen">
+            <div class="card glassmorphic game-over-card">
+                <div class="game-over-banner" id="game-result-title">PLAYER 1 VICTORIOUS</div>
+                <div class="game-over-subtitle" id="game-result-detail">Secured a 3 - 2 dominance against Player 2.</div>
+
+                <!-- Cryptographic Security Status Badge -->
+                <div class="cryptography-badge-wrapper" style="margin-bottom: 20px;">
+                    <span id="gameover-security-badge" class="security-badge badge-neutral">🛡️ LOCAL SECURITY VALIDATED</span>
+                </div>
+
+                <div class="showdown-summary-grid">
+                    <div class="summary-header">ROUND</div>
+                    <div class="summary-header" id="lbl-p1-summary-col">P1 SHADOW ($L1_B$)</div>
+                    <div class="summary-header">OUTCOME</div>
+                    <div class="summary-header" id="lbl-p2-summary-col">P2 COUNTER ($L2$)</div>
+                    
+                    <!-- 5 summary lines generated by JS -->
+                    <div class="summary-rows-container" id="summary-rows-container">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+
+                <div class="action-bar" id="game-over-actions">
+                    <button id="btn-replay" class="btn primary-btn glow-cyan">
+                        <span>REDEPLOY FORCES</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Background Audio / Settings Toggle -->
+    <div class="audio-control" id="audio-toggle">
+        <span class="audio-icon">🔊</span> SOUNDS ACTIVE
+    </div>
+
+    <!-- Script File -->
+    <script src="app.js"></script>
+</body>
+</html>

@@ -383,6 +383,50 @@ body {
     box-shadow: none;
 }
 
+/* Secondary & Glow Buttons */
+.secondary-btn {
+    background: rgba(16, 22, 37, 0.5);
+    color: var(--text-muted);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.secondary-btn span {
+    position: relative;
+    z-index: 2;
+}
+
+.secondary-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+    transform: translateY(-2px);
+}
+
+.secondary-btn:active:not(:disabled) {
+    transform: scale(0.97);
+}
+
+.glow-cyan-btn {
+    box-shadow: 0 0 10px rgba(0, 242, 254, 0.1);
+}
+.glow-cyan-btn:hover:not(:disabled) {
+    border-color: var(--cyan-glow);
+    color: var(--cyan-glow);
+    box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+}
+
+.glow-purple-btn {
+    box-shadow: 0 0 10px rgba(189, 0, 255, 0.1);
+}
+.glow-purple-btn:hover:not(:disabled) {
+    border-color: var(--purple-glow);
+    color: var(--purple-glow);
+    box-shadow: 0 0 15px rgba(189, 0, 255, 0.3);
+}
+
+
 /* Action Bars */
 .action-bar {
     display: flex;

@@ -651,6 +651,34 @@ function checkSyncReplay() {
 // ==========================================================================
 // PLAYER 1 SETUP CONTROLLERS (Public & Secret Lists)
 // ==========================================================================
+function randomizeP1Setup() {
+    const choices = ['rock', 'paper', 'scissors'];
+    for (let i = 0; i < 5; i++) {
+        STATE.p1Gambit[i] = choices[Math.floor(Math.random() * choices.length)];
+        STATE.p1Shadow[i] = choices[Math.floor(Math.random() * choices.length)];
+    }
+    STATE.activeSelectionType = 'gambit';
+    STATE.activeSlotIndex = 0;
+    
+    renderP1Slots();
+    updateSelectionLabel(1);
+    updateConfirmButtonState(1);
+    playSound('select');
+}
+
+function randomizeP2Setup() {
+    const choices = ['rock', 'paper', 'scissors'];
+    for (let i = 0; i < 5; i++) {
+        STATE.p2Counter[i] = choices[Math.floor(Math.random() * choices.length)];
+    }
+    STATE.activeSlotIndex = 0;
+    
+    renderP2Slots();
+    updateSelectionLabel(2);
+    updateConfirmButtonState(2);
+    playSound('select');
+}
+
 function setupP1Screens() {
     STATE.activeSetupPlayer = 1;
     STATE.activeSelectionType = 'gambit';
@@ -1177,6 +1205,12 @@ document.addEventListener('DOMContentLoaded', () => {
         establishConnection(codeInput);
     });
 
+    // Player 1 setup random generate
+    document.getElementById('btn-p1-random').addEventListener('click', () => {
+        randomizeP1Setup();
+    });
+    document.getElementById('btn-p1-random').addEventListener('mouseenter', () => playSound('hover'));
+
     // Player 1 setup confirmation
     document.getElementById('btn-p1-confirm').addEventListener('click', async () => {
         playSound('select');
@@ -1208,6 +1242,12 @@ document.addEventListener('DOMContentLoaded', () => {
         setupP2Screens();
         setScreen(SCREENS.P2_SETUP);
     });
+
+    // Player 2 setup random generate
+    document.getElementById('btn-p2-random').addEventListener('click', () => {
+        randomizeP2Setup();
+    });
+    document.getElementById('btn-p2-random').addEventListener('mouseenter', () => playSound('hover'));
 
     // Player 2 setup confirmation
     document.getElementById('btn-p2-confirm').addEventListener('click', () => {

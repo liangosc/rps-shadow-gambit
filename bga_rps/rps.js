@@ -408,15 +408,15 @@ function (dojo, declare) {
         // AJAX REQUEST DISPATCHERS
         // ==========================================================================
         selectChoiceOnServer: function(type, index, choice) {
-            this.ajaxcall("/rps/rps/playCard.html", {
+            this.takeAction("playCard", {
                 type: type,
                 index: index,
                 choice: choice
-            }, this, function(result){});
+            });
         },
         
         confirmDeploymentOnServer: function() {
-            this.ajaxcall("/rps/rps/confirmDeployment.html", {}, this, function(result){});
+            this.takeAction("confirmDeployment");
         },
 
         // ==========================================================================

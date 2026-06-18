@@ -12,7 +12,7 @@ $gameinfos = array(
     'publisher' => 'Indie',
     'publisher_website' => '',
     'publisher_bgg_id' => 0,
-    'bgg_id' => 22262,
+    'bgg_id' => 17113,
     'players' => array( 2 ),
     'suggest_player_number' => null,
     'not_recommend_player_number' => null,
@@ -32,6 +32,5 @@ $gameinfos = array(
         'max' => null
     ),
     'is_sandbox' => true,
-    'turn_control_support' => true,
-    'tags' => array( 2, 23 )
+    'turn_control_support' => true
 );
